@@ -1,21 +1,20 @@
 """
-BioBot Training Script
-Loads real biosense data, builds CNN-LSTM, trains and evaluates.
+BioBot Training Script with Attention Model
 """
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from data_loader import load_and_merge, build_sequences, split_data, FEATURES
-from cnn_lstm_model import BioBotCNNLSTM
+from cnn_lstm_attention_model import BioBotCNNLSTMAtt
 
-EPOCHS     = 100
+EPOCHS     = 150
 BATCH_SIZE = 32
-MODEL_PATH = 'models/biobot.keras'
+MODEL_PATH = 'models/biobot_attention.keras'
 
 def main():
     print("=" * 55)
-    print("  BioBot CNN-LSTM  |  Vivabilite Prediction")
+    print("  BioBot CNN-LSTM-Attention  |  Vivabilite Prediction")
     print("=" * 55)
 
     # ── 1. Load & merge real data ──────────────────────────────
@@ -33,8 +32,8 @@ def main():
     print(f"      Train: {X_train.shape} | Val: {X_val.shape} | Test: {X_test.shape}")
 
     # ── 3. Build & train model ────────────────────────────────
-    print("\n[3/4] Building CNN-LSTM model...")
-    model = BioBotCNNLSTM(n_features=X_train.shape[2])
+    print("\n[3/4] Building CNN-LSTM-Attention model...")
+    model = BioBotCNNLSTMAtt(n_features=X_train.shape[2])
     model.build()
 
     print("\n      Training...")

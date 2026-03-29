@@ -1,46 +1,49 @@
 """
 BioBot Prediction Script
-Use this to make predictions with trained model
+Load the trained model and run predictions on new/test data.
 """
 
-import numpy as np
 import os
-
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
-from data_generator import BioSenseDataGenerator
+import numpy as np
+from data_loader import load_and_merge, build_sequences, split_data, FEATURES
+from cnn_lstm_model import BioBotCNNLSTM
 
-def predict_livable_area(model, sample_data):
-    """Predict livable area score from biosense data"""
-    prediction = model.predict(sample_data, verbose=0)
-    return prediction[0][0]
+MODEL_PATH = 'models/biobot.keras'
+
 
 def main():
-    from cnn_lstm_model import BioBotCNN_LSTM
-    
-    print("Loading model...")
-    model = BioBotCNN_LSTM(verbose=0)
-    model.load_model('models/biobot_cnn_lstm.h5')
-    
-    print("\nGenerating sample predictions...")
-    generator = BioSenseDataGenerator(n_samples=10, seq_length=24)
-    X_test, y_test = generator.generate_dataset()
-    
-    print("\nPredictions:")
+    print("BioBot - Vivabilite Predictor")
     print("-" * 40)
-    for i in range(5):
-        pred = model.predict(X_test[i:i+1])
-        print(f"Sample {i+1}: Predicted={pred[0][0]:.1f}, Actual={y_test[i][0]:.1f}")
-    
-    print("\n" + "-" * 40)
-    print("Feature Interpretation:")
-    print("  Temperature: 15-40°C")
-    print("  Humidity: 20-95%")
-    print("  Humidex: Feels-like temp")
-    print("  Wind: 0-30 km/h")
-    print("  Solar Radiation: 0-1000 W/m²")
-    print("  Activity: 1=Low, 2=Medium, 3=High")
-    print("  Clothing: 0.1-1.0 (light to heavy)")
 
-if __name__ == "__main__":
+    # Load data & rebuild test set
+    print("Loading data...")
+    df = load_and_merge()
+    X, y, scaler = build_sequences(df)
+    _, _, (X_test, y_test) = split_data(X, y)
+
+    # Load trained model
+    print(f"Loading model from {MODEL_PATH} ...")
+    model = BioBotCNNLSTM(verbose=0)
+    model.load(MODEL_PATH)
+
+    # Evaluate
+    results = model.evaluate(X_test, y_test)
+
+    # Print sample predictions
+    print("\nSample Predictions:")
+    print(f"  {'#':<4} {'Predicted':>12} {'Actual':>12} {'Error':>10}")
+    print("  " + "-" * 40)
+    preds = model.predict(X_test[:10])
+    for i in range(10):
+        err = abs(preds[i][0] - y_test[i][0])
+        print(f"  {i+1:<4} {preds[i][0]:>12.2f} {y_test[i][0]:>12.2f} {err:>10.2f}")
+
+    print("\nFeatures used:")
+    for f in FEATURES:
+        print(f"  - {f}")
+
+
+if __name__ == '__main__':
     main()
